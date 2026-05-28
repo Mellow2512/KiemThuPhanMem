@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSMS - Đăng Ký Ca Làm</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="#">CSMS Portal</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="/index.html">Quản Lý Nhân Viên</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/register.html">Đăng Ký Ca Làm</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-success text-white text-center py-3">
+                    <h4 class="mb-0"><i class="bi bi-calendar-check"></i> Đăng Ký Lịch Rảnh Hàng Tuần</h4>
+                </div>
+                <div class="card-body p-4">
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Mã Nhân Viên của bạn:</label>
+                            <input type="text" id="userId" class="form-control border-primary" placeholder="VD: NV001" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Tuần làm việc (Chọn ngày Thứ Hai):</label>
+                            <input type="date" id="weekStartDate" class="form-control border-primary" required>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h5 class="text-secondary mb-3">Thời gian rảnh đăng ký:</h5>
+                    <div id="timeSlotsContainer">
+                        <div class="row align-items-center mb-3 time-slot-row">
+                            <div class="col-md-4">
+                                <label class="form-label small">Ngày rảnh:</label>
+                                <input type="date" class="form-control input-date" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">Từ giờ:</label>
+                                <input type="time" class="form-control input-start" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">Đến giờ:</label>
+                                <input type="time" class="form-control input-end" required>
+                            </div>
+                            <div class="col-md-2 mt-4 text-center">
+                                <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeSlot(this)">
+                                    <i class="bi bi-trash"></i> Xóa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-outline-primary" onclick="addSlot()">
+                            <i class="bi bi-plus-circle"></i> Thêm khoảng thời gian
+                        </button>
+                        <button type="button" class="btn btn-success px-5" onclick="submitRegistration()">
+                            <i class="bi bi-send"></i> Gửi Đăng Ký
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:8080/api/available-times/register';
+
+    // 1. Hàm thêm một dòng thời gian rảnh mới (Dynamic UI)
+    function addSlot() {
+        const container = document.getElementById('timeSlotsContainer');
+        const newRow = document.createElement('div');
+        newRow.className = 'row align-items-center mb-3 time-slot-row';
+        newRow.innerHTML = `
+            <div class="col-md-4">
+                <input type="date" class="form-control input-date" required>
+            </div>
+            <div class="col-md-3">
+                <input type="time" class="form-control input-start" required>
+            </div>
+            <div class="col-md-3">
+                <input type="time" class="form-control input-end" required>
+            </div>
+            <div class="col-md-2 text-center">
+                <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeSlot(this)">
+                    <i class="bi bi-trash"></i> Xóa
+                </button>
+            </div>
+        `;
+        container.appendChild(newRow);
+    }
+
+    // 2. Hàm xóa một dòng thời gian rảnh
+    function removeSlot(buttonElement) {
+        const row = buttonElement.closest('.time-slot-row');
+        // Giữ lại ít nhất 1 dòng không cho xóa hết
+        if (document.querySelectorAll('.time-slot-row').length > 1) {
+            row.remove();
+        } else {
+            alert("Bạn phải đăng ký ít nhất một khoảng thời gian!");
+        }
+    }
+
+    // 3. Hàm thu thập dữ liệu và gửi xuống Backend Java
+    function submitRegistration() {
+        const userId = document.getElementById('userId').value;
+        const weekStartDate = document.getElementById('weekStartDate').value;
+
+        if (!userId || !weekStartDate) {
+            alert("Vui lòng nhập Mã nhân viên và Tuần làm việc!");
+            return;
+        }
+
+        const rows = document.querySelectorAll('.time-slot-row');
+        const registrations = [];
+
+        // Lặp qua từng dòng để lấy dữ liệu ghép thành mảng JSON
+        let hasError = false;
+        rows.forEach(row => {
+            const date = row.querySelector('.input-date').value;
+            const start = row.querySelector('.input-start').value;
+            const end = row.querySelector('.input-end').value;
+
+            if (!date || !start || !end) {
+                hasError = true;
+            } else {
+                registrations.push({
+                    user: { id: userId }, // Map đúng chuẩn cấu trúc Entity của Java
+                    weekStartDate: weekStartDate,
+                    availableDate: date,
+                    startTime: start + ":00", // Bổ sung giây để Java phân tích đúng kiểu LocalTime
+                    endTime: end + ":00"
+                });
+            }
+        });
+
+        if (hasError) {
+            alert("Vui lòng điền đầy đủ ngày giờ ở các dòng!");
+            return;
+        }
+
+        // Gọi API bằng lệnh Fetch
+        fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(registrations)
+        })
+        .then(async response => {
+            if (!response.ok) {
+                // Đọc thông báo lỗi từ backend ném ra (Ví dụ: "Vi phạm giới hạn 10 giờ")
+                const errorMsg = await response.text();
+                throw new Error(errorMsg || 'Lỗi hệ thống!');
+            }
+            return response.json();
+        })
+        .then(data => {
+            alert("🎉 Đã gửi đăng ký ca làm thành công!");
+            // Refresh trang sau khi đăng ký
+            window.location.reload();
+        })
+        .catch(error => {
+            alert("❌ Lỗi: " + error.message);
+        });
+    }
+</script>
+
+</body>
+</html>

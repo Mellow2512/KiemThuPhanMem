@@ -20,4 +20,8 @@ public class UserService {
         }
         return userRepository.save(user);
     }
+    public User login(String email, String password) {
+        return userRepository.findByEmailAndPassword(email, password)
+                .orElseThrow(() -> new RuntimeException("Sai email hoặc mật khẩu!"));
+    }
 }

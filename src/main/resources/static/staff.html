@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSMS - Nhân Viên</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-info mb-4">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="#">Cổng Thông Tin Nhân Viên</a>
+        <div class="d-flex align-items-center">
+            <span class="text-dark me-3 fw-bold" id="welcomeText"></span>
+            <button class="btn btn-danger btn-sm" onclick="logout()">Đăng xuất</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container text-center mt-5">
+    <h2>Chào mừng bạn trở lại!</h2>
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h5 class="card-title">Đăng Ký Ca Làm</h5>
+                    <p class="card-text">Đăng ký lịch rảnh cho tuần làm việc tiếp theo.</p>
+                    <a href="/register.html" class="btn btn-primary w-100">Đi đến trang đăng ký</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h5 class="card-title">Yêu Cầu Đổi Ca</h5>
+                    <p class="card-text">Xin đổi ca với đồng nghiệp nếu có việc bận.</p>
+                    <button class="btn btn-warning w-100" onclick="alert('Chức năng đang bảo trì')">Gửi yêu cầu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Kiểm tra bảo mật
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser || currentUser.role !== 'ROLE_STAFF') {
+        alert('Vui lòng đăng nhập bằng tài khoản nhân viên!');
+        window.location.href = '/login.html';
+    }
+
+    // Hiển thị tên
+    document.getElementById('welcomeText').innerText = "Xin chào: " + currentUser.fullName;
+
+    function logout() {
+        localStorage.removeItem('currentUser');
+        window.location.href = '/login.html';
+    }
+</script>
+</body>
+</html>
