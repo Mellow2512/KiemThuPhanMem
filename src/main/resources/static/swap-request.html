@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSMS - Yêu Cầu Đổi Ca</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+    <script>
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser || currentUser.role !== 'ROLE_STAFF') {
+            alert('Vui lòng đăng nhập bằng tài khoản nhân viên!');
+            window.location.href = '/login.html';
+        }
+    </script>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-info mb-4">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="#">Cổng Thông Tin Nhân Viên</a>
+        <div class="d-flex align-items-center">
+            <a href="/staff.html" class="btn btn-outline-dark btn-sm me-3">Quay lại Trang chủ</a>
+            <span class="text-dark me-3 fw-bold" id="welcomeText"></span>
+            <button class="btn btn-danger btn-sm" onclick="logout()">Đăng xuất</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-0">
+                <div class="card-header bg-warning text-dark text-center py-3">
+                    <h5 class="mb-0"><i class="bi bi-arrow-left-right"></i> Biểu Mẫu Yêu Cầu Đổi Ca</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form id="swapForm">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Mã nhân viên của bạn:</label>
+                            <input type="text" id="requesterId" class="form-control" disabled>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-danger">ID Ca hiện tại của bạn:</label>
+                                <input type="number" id="currentShiftId" class="form-control" placeholder="VD: 1" required>
+                                <small class="text-muted">Nhập mã ca làm bạn muốn bỏ.</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-success">ID Ca muốn nhận lại:</label>
+                                <input type="number" id="targetShiftId" class="form-control" placeholder="VD: 2" required>
+                                <small class="text-muted">Nhập mã ca của đồng nghiệp.</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Lý do đổi ca (Bắt buộc):</label>
+                            <textarea id="reason" class="form-control" rows="3" placeholder="Ghi rõ lý do xin đổi..." required></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-warning w-100 fw-bold shadow-sm">
+                            <i class="bi bi-send-fill"></i> Gửi Yêu Cầu Cho Quản Lý
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Điền tên và ID lên giao diện
+    document.getElementById('welcomeText').innerText = "Xin chào: " + currentUser.fullName;
+    document.getElementById('requesterId').value = currentUser.id;
+
+    function logout() {
+        localStorage.removeItem('currentUser');
+        window.location.href = '/login.html';
+    }
+
+    // Xử lý gửi biểu mẫu
+    document.getElementById('swapForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Gom dữ liệu theo đúng chuẩn JSON mà Backend Java yêu cầu
+        const payload = {
+            requester: { id: currentUser.id },
+            currentShift: { id: parseInt(document.getElementById('currentShiftId').value) },
+            targetShift: { id: parseInt(document.getElementById('targetShiftId').value) },
+            reason: document.getElementById('reason').value
+        };
+
+        // Gửi qua cổng API
+        fetch('http://localhost:8080/api/shift-swaps/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(async response => {
+            if (!response.ok) {
+                // Hứng câu chửi tiếng Việt từ Backend nếu vi phạm logic (Ví dụ: Khác tuần)
+                const errorMsg = await response.text();
+                throw new Error(errorMsg || 'Có lỗi xảy ra!');
+            }
+            return response.json();
+        })
+        .then(data => {
+            alert("✅ Gửi yêu cầu đổi ca thành công! Trạng thái hiện tại: Đang chờ Quản lý duyệt.");
+            window.location.href = '/staff.html'; // Quay lại trang chủ nhân viên
+        })
+        .catch(error => {
+            alert("❌ Lỗi: " + error.message);
+        });
+    });
+</script>
+
+</body>
+</html>

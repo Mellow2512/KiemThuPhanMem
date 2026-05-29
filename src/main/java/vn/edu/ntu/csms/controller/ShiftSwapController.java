@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.*;
 import vn.edu.ntu.csms.entity.ShiftSwapRequest;
 import vn.edu.ntu.csms.service.ShiftSwapRequestService;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/shift-swaps")
 @CrossOrigin(origins = "*")
@@ -21,5 +23,9 @@ public class ShiftSwapController {
     @PutMapping("/review/{id}")
     public ShiftSwapRequest reviewRequest(@PathVariable Integer id, @RequestParam String decision) {
         return swapService.reviewRequest(id, decision);
+    }
+    @GetMapping
+    public List<ShiftSwapRequest> getAllRequests() {
+        return swapService.getAllRequests();
     }
 }

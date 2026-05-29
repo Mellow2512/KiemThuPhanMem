@@ -9,6 +9,7 @@ import vn.edu.ntu.csms.repository.ShiftRepository;
 import vn.edu.ntu.csms.repository.ShiftSwapRequestRepository;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 @Service
 public class ShiftSwapRequestService {
@@ -65,5 +66,8 @@ public class ShiftSwapRequestService {
         }
 
         return swapRepository.save(request);
+    }
+    public List<ShiftSwapRequest> getAllRequests() {
+        return swapRepository.findAll();
     }
 }

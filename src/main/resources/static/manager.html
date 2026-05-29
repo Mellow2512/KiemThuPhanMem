@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CSMS - Quản Lý</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <script>
-        // Kiểm tra xem đã đăng nhập chưa và có phải Quản lý không
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
         if (!currentUser || currentUser.role !== 'ROLE_MANAGER') {
             alert('Bạn không có quyền truy cập trang này! Vui lòng đăng nhập bằng tài khoản Quản lý.');
-            window.location.href = '/login.html'; // Đuổi về trang đăng nhập
+            window.location.href = '/login.html';
         }
     </script>
 </head>
@@ -30,14 +28,14 @@
 <div class="container">
     <div class="row">
         <div class="col-md-4">
-            <div class="card shadow-sm border-0">
+            <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">Thêm Nhân Viên Mới</h5>
                 </div>
                 <div class="card-body">
                     <form id="userForm">
                         <div class="mb-2">
-                            <label class="form-label">Mã NV (VD: NV001):</label>
+                            <label class="form-label">Mã NV:</label>
                             <input type="text" class="form-control" id="id" required>
                         </div>
                         <div class="mb-2">
@@ -66,11 +64,11 @@
         </div>
 
         <div class="col-md-8">
-            <div class="card shadow-sm border-0">
+            <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-secondary text-white">
                     <h5 class="mb-0">Danh Sách Nhân Sự</h5>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-0" style="max-height: 300px; overflow-y: auto;">
                     <table class="table table-striped table-hover mb-0">
                         <thead class="table-dark">
                         <tr>
@@ -78,10 +76,31 @@
                             <th>Họ Tên</th>
                             <th>Email</th>
                             <th>Vai trò</th>
-                            <th>Trạng thái</th>
                         </tr>
                         </thead>
                         <tbody id="userTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Duyệt Yêu Cầu Đổi Ca</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-bordered mb-0 text-center align-middle">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Mã NV Xin Đổi</th>
+                            <th>Từ Ca</th>
+                            <th>Sang Ca</th>
+                            <th>Lý do</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                        </thead>
+                        <tbody id="swapTableBody">
                         </tbody>
                     </table>
                 </div>
@@ -91,43 +110,95 @@
 </div>
 
 <script>
-    // 1. Hiển thị tên người đang đăng nhập trên góc phải
     document.getElementById('managerName').innerText = "Xin chào: " + currentUser.fullName;
 
-    // 2. Hàm đăng xuất
     function logout() {
-        localStorage.removeItem('currentUser'); // Xóa phiên đăng nhập
-        window.location.href = '/login.html'; // Trở về trang đăng nhập
+        localStorage.removeItem('currentUser');
+        window.location.href = '/login.html';
     }
 
-    const API_URL = 'http://localhost:8080/api/users';
+    const API_URL_USERS = 'http://localhost:8080/api/users';
+    const API_URL_SWAPS = 'http://localhost:8080/api/shift-swaps';
 
-    // 3. Hàm tải danh sách nhân viên từ Backend
     function loadUsers() {
-        fetch(API_URL)
+        fetch(API_URL_USERS)
             .then(response => response.json())
             .then(data => {
                 const tableBody = document.getElementById('userTableBody');
                 tableBody.innerHTML = '';
-
                 data.forEach(user => {
                     const row = `<tr>
                         <td>${user.id}</td>
                         <td>${user.fullName}</td>
                         <td>${user.email}</td>
                         <td><span class="badge ${user.role === 'ROLE_MANAGER' ? 'bg-danger' : 'bg-info'}">${user.role === 'ROLE_MANAGER' ? 'Quản lý' : 'Nhân viên'}</span></td>
-                        <td><span class="badge bg-success">Đang hoạt động</span></td>
                     </tr>`;
                     tableBody.innerHTML += row;
                 });
-            })
-            .catch(error => console.error('Lỗi khi tải dữ liệu:', error));
+            });
     }
 
-    // 4. Hàm thêm nhân viên mới
+    function loadSwaps() {
+        fetch(API_URL_SWAPS)
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('swapTableBody');
+                tableBody.innerHTML = '';
+                data.forEach(req => {
+                    let statusBadge = '';
+                    let actionButtons = '';
+
+                    if (req.status === 'PENDING') {
+                        statusBadge = '<span class="badge bg-warning text-dark">Chờ duyệt</span>';
+                        actionButtons = `
+                            <button class="btn btn-success btn-sm me-1" onclick="reviewSwap(${req.id}, 'APPROVE')">Duyệt</button>
+                            <button class="btn btn-danger btn-sm" onclick="reviewSwap(${req.id}, 'REJECT')">Từ chối</button>
+                        `;
+                    } else if (req.status === 'APPROVED') {
+                        statusBadge = '<span class="badge bg-success">Đã duyệt</span>';
+                        actionButtons = '-';
+                    } else {
+                        statusBadge = '<span class="badge bg-danger">Đã từ chối</span>';
+                        actionButtons = '-';
+                    }
+
+                    const row = `<tr>
+                        <td class="fw-bold">${req.requester.id}</td>
+                        <td>Ca ${req.currentShift.id}</td>
+                        <td>Ca ${req.targetShift.id}</td>
+                        <td>${req.reason}</td>
+                        <td>${statusBadge}</td>
+                        <td>${actionButtons}</td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                });
+            });
+    }
+
+    function reviewSwap(requestId, decision) {
+        if (!confirm("Bạn có chắc chắn muốn " + (decision === 'APPROVE' ? "DUYỆT" : "TỪ CHỐI") + " yêu cầu này?")) {
+            return;
+        }
+
+        fetch(`${API_URL_SWAPS}/review/${requestId}?decision=${decision}`, {
+            method: 'PUT'
+        })
+        .then(async response => {
+            if (!response.ok) {
+                const errorMsg = await response.text();
+                throw new Error(errorMsg);
+            }
+            return response.json();
+        })
+        .then(data => {
+            alert('Đã xử lý yêu cầu đổi ca thành công!');
+            loadSwaps();
+        })
+        .catch(error => alert("Lỗi: " + error.message));
+    }
+
     document.getElementById('userForm').addEventListener('submit', function(e) {
         e.preventDefault();
-
         const newUser = {
             id: document.getElementById('id').value,
             fullName: document.getElementById('fullName').value,
@@ -137,16 +208,13 @@
             status: "ACTIVE"
         };
 
-        fetch(API_URL, {
+        fetch(API_URL_USERS, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newUser)
         })
         .then(async response => {
-            if (!response.ok) {
-                const errorMsg = await response.text();
-                throw new Error(errorMsg || 'Lỗi khi thêm nhân viên!');
-            }
+            if (!response.ok) throw new Error(await response.text());
             return response.json();
         })
         .then(data => {
@@ -154,11 +222,13 @@
             document.getElementById('userForm').reset();
             loadUsers();
         })
-        .catch(error => alert("❌ Lỗi: " + error.message));
+        .catch(error => alert("Lỗi: " + error.message));
     });
 
-    // Chạy hàm tải danh sách ngay khi mở trang web
-    window.onload = loadUsers;
+    window.onload = function() {
+        loadUsers();
+        loadSwaps();
+    };
 </script>
 
 </body>
