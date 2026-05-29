@@ -10,4 +10,7 @@ import java.util.List;
 public interface ShiftRepository extends JpaRepository<Shift, Integer> {
     List<Shift> findByUserIdAndWorkDate(String userId, LocalDate workDate);
     List<Shift> findByWorkDateBetween(LocalDate start, LocalDate end);
+
+    // Hàm tìm kiếm toàn bộ ca làm việc của một nhân viên
+    List<Shift> findByUserId(String userId);
 }

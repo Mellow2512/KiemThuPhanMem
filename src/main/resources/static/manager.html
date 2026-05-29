@@ -84,7 +84,7 @@
                 </div>
             </div>
 
-            <div class="card shadow-sm border-0">
+            <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-warning text-dark">
                     <h5 class="mb-0">Duyệt Yêu Cầu Đổi Ca</h5>
                 </div>
@@ -105,6 +105,29 @@
                     </table>
                 </div>
             </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-info text-dark">
+                    <h5 class="mb-0">Duyệt Lịch Làm Việc</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-bordered mb-0 text-center align-middle">
+                        <thead class="table-light">
+                        <tr>
+                            <th>ID Ca</th>
+                            <th>Mã NV</th>
+                            <th>Ngày Làm</th>
+                            <th>Thời Gian</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                        </thead>
+                        <tbody id="shiftTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
@@ -119,6 +142,7 @@
 
     const API_URL_USERS = 'http://localhost:8080/api/users';
     const API_URL_SWAPS = 'http://localhost:8080/api/shift-swaps';
+    const API_URL_SHIFTS = 'http://localhost:8080/api/shifts';
 
     function loadUsers() {
         fetch(API_URL_USERS)
@@ -197,6 +221,57 @@
         .catch(error => alert("Lỗi: " + error.message));
     }
 
+    // TẢI VÀ DUYỆT LỊCH LÀM VIỆC
+    function loadShifts() {
+        fetch(API_URL_SHIFTS)
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('shiftTableBody');
+                tableBody.innerHTML = '';
+                data.forEach(shift => {
+                    let statusBadge = '';
+                    let actionButtons = '';
+
+                    if (shift.status === 'DRAFT') {
+                        statusBadge = '<span class="badge bg-secondary">Bản nháp</span>';
+                        actionButtons = `<button class="btn btn-primary btn-sm" onclick="publishShift(${shift.id})">Duyệt Ca</button>`;
+                    } else {
+                        statusBadge = '<span class="badge bg-success">Đã duyệt</span>';
+                        actionButtons = '-';
+                    }
+
+                    const row = `<tr>
+                        <td>${shift.id}</td>
+                        <td class="fw-bold">${shift.user.id}</td>
+                        <td>${shift.workDate}</td>
+                        <td>${shift.startTime} - ${shift.endTime}</td>
+                        <td>${statusBadge}</td>
+                        <td>${actionButtons}</td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                });
+            })
+            .catch(error => console.error('Lỗi khi tải lịch làm:', error));
+    }
+
+    function publishShift(shiftId) {
+        fetch(`${API_URL_SHIFTS}/publish/${shiftId}`, {
+            method: 'PUT'
+        })
+        .then(async response => {
+            if (!response.ok) {
+                const errorMsg = await response.text();
+                throw new Error(errorMsg);
+            }
+            return response.json();
+        })
+        .then(data => {
+            alert('Đã duyệt ca làm thành công!');
+            loadShifts(); // Tải lại bảng ca làm
+        })
+        .catch(error => alert("Lỗi: " + error.message));
+    }
+
     document.getElementById('userForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const newUser = {
@@ -228,6 +303,7 @@
     window.onload = function() {
         loadUsers();
         loadSwaps();
+        loadShifts(); // Gọi API hiển thị bảng ca làm lúc load trang
     };
 </script>
 
